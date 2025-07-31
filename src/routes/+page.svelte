@@ -9,6 +9,16 @@
 
   function handleDrop(event, index) {
     event.preventDefault();
+    if (index < 0) {
+      // If index is -1, drop into unseated list
+      const nameToDrop = event.dataTransfer.getData("text/plain");
+      if (!plan.unseated.includes(nameToDrop)) {
+        plan.unseated.push(nameToDrop);
+      }
+      // remove the student from seats if they were dropped into unseated
+      plan.seats = plan.seats.map((s) => (s === nameToDrop ? null : s));
+      return;
+    }
     if (plan.seats[index]) {
       // If the seat is already occupied, move the student to the unseated list
       const occupiedStudent = plan.seats[index];
@@ -43,7 +53,7 @@
         <div
           draggable="true"
           ondragstart={(e) => handleDragStart(e, seat)}
-          class="grid-item"
+          class="grid-item {seat ? 'occupied' : ''}"
           ondrop={(e) => handleDrop(e, i)}
           ondragover={(e) => e.preventDefault()}
           style="background-color: {seat ? '#d4f7d4' : '#eee'}"
@@ -56,9 +66,17 @@
       {/each}
     </div>
   </div>
-  <ul class="students">
+  <ul
+    class="unseated"
+    ondrop={(e) => handleDrop(e, -1)}
+    ondragover={(e) => e.preventDefault()}
+  >
     {#each plan.unseated as student}
-      <li draggable="true" ondragstart={(e) => handleDragStart(e, student)}>
+      <li
+        class="unseated-item"
+        draggable="true"
+        ondragstart={(e) => handleDragStart(e, student)}
+      >
         {student}
       </li>
     {/each}
@@ -101,24 +119,28 @@
     user-select: none;
   }
 
-  .students {
+  .unseated {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-width: 200px;
+    min-height: 100px;
+    background-color: #eee;
     list-style-type: none;
     padding: 0;
     margin: 0 auto;
     max-width: 200px;
   }
 
-  .students li {
+  .unseated-item {
+    border-radius: 8px;
+    height: fit-content;
     padding: 8px;
-    width: 100px;
-    text-align: center;
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    margin-bottom: 4px;
+    margin: 4px;
+    background-color: #fff;
+    border: 1px solid #ccc;
     cursor: grab;
-  }
-
-  .students li:hover {
-    background-color: #f0f0f0;
+    user-select: none;
   }
 </style>
