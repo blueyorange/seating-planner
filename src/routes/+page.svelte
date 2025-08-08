@@ -2,9 +2,49 @@
   const rows = 3;
   const cols = 6;
 
-  let plan = $state({
-    seats: Array(rows * cols).fill(null),
-    unseated: ["Alice", "Bob", "Charlie", "David", "Eve", "Frank"],
+  let initialPlans = [
+    {
+      name: "S1",
+      seats: Array(rows * cols).fill(null),
+      unseated: ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace"],
+    },
+    {
+      name: "S2",
+      seats: Array(rows * cols).fill(null),
+      unseated: ["Grace", "Heidi", "Ivan", "Judy", "Karl", "Leo"],
+    },
+  ];
+
+  let plans = $state(initialPlans);
+  let plan = $state(null);
+
+  // retrieve state from local storage or set to initialPlans
+  $effect(() => {
+    const storedPlans = localStorage.getItem("plans");
+    if (storedPlans) {
+      plans = JSON.parse(storedPlans);
+    }
+  });
+
+  $effect(() => {
+    if (plans.length === 0) {
+      plans.push({
+        name: "Default Plan",
+        seats: Array(rows * cols).fill(null),
+        unseated: [],
+      });
+    }
+  });
+
+  $effect(() => {
+    if (plans.length > 0 && !plan) {
+      plan = plans[0];
+    }
+  });
+
+  // save state to local storage
+  $effect(() => {
+    localStorage.setItem("plans", JSON.stringify(plans));
   });
 
   function handleDrop(event, index) {
@@ -44,43 +84,54 @@
 
 <main>
   <div class="container">
-    <div
-      class="grid"
-      style="grid-template-columns: repeat({cols}, 1fr); grid-template-rows: repeat({rows}, 60px); gap: 8px;"
-      role="listbox"
-    >
-      {#each plan.seats as seat, i}
+    <menu>
+      <select bind:value={plan} class="select">
+        {#each plans as p}
+          <option value={p}>{p.name}</option>
+        {/each}
+      </select>
+      {#if plan}
         <div
-          draggable="true"
-          ondragstart={(e) => handleDragStart(e, seat)}
-          class="grid-item {seat ? 'occupied' : ''}"
-          ondrop={(e) => handleDrop(e, i)}
-          ondragover={(e) => e.preventDefault()}
-          style="background-color: {seat ? '#d4f7d4' : '#eee'}"
-          role="option"
-          aria-selected={seat ? "true" : "false"}
-          tabindex="0"
+          class="grid"
+          style="grid-template-columns: repeat({cols}, 1fr); grid-template-rows: repeat({rows}, 60px); gap: 8px;"
+          role="listbox"
         >
-          {seat}
+          {#each plan.seats as seat, i}
+            <div
+              draggable="true"
+              ondragstart={(e) => handleDragStart(e, seat)}
+              class="grid-item {seat ? 'occupied' : ''}"
+              ondrop={(e) => handleDrop(e, i)}
+              ondragover={(e) => e.preventDefault()}
+              style="background-color: {seat ? '#d4f7d4' : '#eee'}"
+              role="option"
+              aria-selected={seat ? "true" : "false"}
+              tabindex="0"
+            >
+              {seat}
+            </div>
+          {/each}
         </div>
-      {/each}
-    </div>
+      {/if}
+    </menu>
   </div>
-  <ul
-    class="unseated"
-    ondrop={(e) => handleDrop(e, -1)}
-    ondragover={(e) => e.preventDefault()}
-  >
-    {#each plan.unseated as student}
-      <li
-        class="unseated-item"
-        draggable="true"
-        ondragstart={(e) => handleDragStart(e, student)}
-      >
-        {student}
-      </li>
-    {/each}
-  </ul>
+  {#if plan}
+    <ul
+      class="unseated"
+      ondrop={(e) => handleDrop(e, -1)}
+      ondragover={(e) => e.preventDefault()}
+    >
+      {#each plan.unseated as student}
+        <li
+          class="unseated-item"
+          draggable="true"
+          ondragstart={(e) => handleDragStart(e, student)}
+        >
+          {student}
+        </li>
+      {/each}
+    </ul>
+  {/if}
 </main>
 
 <style>
