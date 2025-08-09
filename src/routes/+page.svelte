@@ -6,12 +6,12 @@
   let initialPlans = [
     {
       name: "S1",
-      seats: Array(rows * cols).fill(null),
+      seated: Array(rows * cols).fill(null),
       unseated: ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace"],
     },
     {
       name: "S2",
-      seats: Array(rows * cols).fill(null),
+      seated: Array(rows * cols).fill(null),
       unseated: ["Grace", "Heidi", "Ivan", "Judy", "Karl", "Leo"],
     },
   ];
@@ -19,12 +19,35 @@
   let plans = $state(initialPlans);
   let plan = $state(null);
 
+  function normalizePlans(list) {
+    if (!Array.isArray(list)) return initialPlans;
+    for (const p of list) {
+      if (!("seated" in p) && "seats" in p) {
+        p.seated = Array.isArray(p.seats)
+          ? p.seats
+          : Array(rows * cols).fill(null);
+        delete p.seats;
+      }
+      if (!Array.isArray(p.seated)) {
+        p.seated = Array(rows * cols).fill(null);
+      }
+      if (p.seated.length !== rows * cols) {
+        const next = Array(rows * cols).fill(null);
+        for (let i = 0; i < Math.min(p.seated.length, next.length); i++)
+          next[i] = p.seated[i];
+        p.seated = next;
+      }
+      if (!Array.isArray(p.unseated)) p.unseated = [];
+    }
+    return list;
+  }
+
   // retrieve stored plans and current plan once on mount (avoid reactive loops)
   onMount(() => {
     const storedPlans = localStorage.getItem("plans");
     if (storedPlans) {
       try {
-        plans = JSON.parse(storedPlans);
+        plans = normalizePlans(JSON.parse(storedPlans));
       } catch {}
     }
 
@@ -51,7 +74,7 @@
     if (plans.length === 0) {
       plans.push({
         name: "Default Plan",
-        seats: Array(rows * cols).fill(null),
+        seated: Array(rows * cols).fill(null),
         unseated: [],
       });
     }
@@ -76,18 +99,18 @@
       if (!plan.unseated.includes(nameToDrop)) {
         plan.unseated.push(nameToDrop);
       }
-      // remove the student from seats if they were dropped into unseated
-      plan.seats = plan.seats.map((s) => (s === nameToDrop ? null : s));
+      // remove the student from seated if they were dropped into unseated
+      plan.seated = plan.seated.map((s) => (s === nameToDrop ? null : s));
       return;
     }
-    if (plan.seats[index]) {
+    if (plan.seated[index]) {
       // If the seat is already occupied, move the student to the unseated list
-      const occupiedStudent = plan.seats[index];
+      const occupiedStudent = plan.seated[index];
       plan.unseated.push(occupiedStudent);
     }
     const nameToDrop = event.dataTransfer.getData("text/plain");
-    plan.seats = plan.seats.map((s) => (s === nameToDrop ? null : s)); // set students with that name to null in seats
-    plan.seats[index] = nameToDrop; // place the student in the dropped seat
+    plan.seated = plan.seated.map((s) => (s === nameToDrop ? null : s)); // set students with that name to null in seats
+    plan.seated[index] = nameToDrop; // place the student in the dropped seat
     plan.unseated = plan.unseated.filter((s) => s !== nameToDrop); // remove the student from unseated
   }
 
@@ -95,7 +118,13 @@
     event.dataTransfer.setData("text/plain", student);
   }
 
-  function handleClear() {}
+  function handleClear() {
+    plan.unseated = [
+      ...plan.unseated,
+      ...plan.seated.filter((s) => s !== null),
+    ];
+    plan.seated = Array(rows * cols).fill(null);
+  }
   function handleFill() {}
 </script>
 
@@ -111,29 +140,30 @@
           <option value={p}>{p.name}</option>
         {/each}
       </select>
-      {#if plan}
-        <div
-          class="grid"
-          style="grid-template-columns: repeat({cols}, 1fr); grid-template-rows: repeat({rows}, 60px); gap: 8px;"
-          role="listbox"
-        >
-          {#each plan.seats as seat, i}
-            <div
-              draggable="true"
-              ondragstart={(e) => handleDragStart(e, seat)}
-              class="grid-item {seat ? 'occupied' : ''}"
-              ondrop={(e) => handleDrop(e, i)}
-              ondragover={(e) => e.preventDefault()}
-              role="option"
-              aria-selected={seat ? "true" : "false"}
-              tabindex="0"
-            >
-              {seat}
-            </div>
-          {/each}
-        </div>
-      {/if}
+      <button onclick={handleClear}>Clear</button>
     </menu>
+    {#if plan}
+      <div
+        class="grid"
+        style="grid-template-columns: repeat({cols}, 1fr); grid-template-rows: repeat({rows}, 60px); gap: 8px;"
+        role="listbox"
+      >
+        {#each plan.seated as seat, i}
+          <div
+            draggable="true"
+            ondragstart={(e) => handleDragStart(e, seat)}
+            class="grid-item {seat ? 'occupied' : ''}"
+            ondrop={(e) => handleDrop(e, i)}
+            ondragover={(e) => e.preventDefault()}
+            role="option"
+            aria-selected={seat ? "true" : "false"}
+            tabindex="0"
+          >
+            {seat}
+          </div>
+        {/each}
+      </div>
+    {/if}
   </div>
   {#if plan}
     <ul
