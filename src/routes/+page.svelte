@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from "svelte";
   const rows = 3;
   const cols = 6;
 
@@ -18,11 +19,31 @@
   let plans = $state(initialPlans);
   let plan = $state(null);
 
-  // retrieve state from local storage or set to initialPlans
-  $effect(() => {
+  // retrieve stored plans and current plan once on mount (avoid reactive loops)
+  onMount(() => {
     const storedPlans = localStorage.getItem("plans");
     if (storedPlans) {
-      plans = JSON.parse(storedPlans);
+      try {
+        plans = JSON.parse(storedPlans);
+      } catch {}
+    }
+
+    const currentPlanNameRaw = localStorage.getItem("currentPlanName");
+    if (currentPlanNameRaw) {
+      let name;
+      try {
+        name = JSON.parse(currentPlanNameRaw);
+      } catch {
+        name = currentPlanNameRaw;
+      }
+      const match = plans.find((p) => p.name === name);
+      if (match) plan = match;
+    }
+  });
+
+  $effect(() => {
+    if (plan) {
+      localStorage.setItem("currentPlanName", JSON.stringify(plan.name));
     }
   });
 
@@ -103,7 +124,6 @@
               class="grid-item {seat ? 'occupied' : ''}"
               ondrop={(e) => handleDrop(e, i)}
               ondragover={(e) => e.preventDefault()}
-              style="background-color: {seat ? '#d4f7d4' : '#eee'}"
               role="option"
               aria-selected={seat ? "true" : "false"}
               tabindex="0"
@@ -166,8 +186,13 @@
     width: 100px;
     text-align: center;
     border: 1px solid #ccc;
-    cursor: grab;
+    cursor: default;
     user-select: none;
+  }
+
+  .occupied {
+    cursor: grab;
+    background-color: #d4f7d4;
   }
 
   .unseated {
