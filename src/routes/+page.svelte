@@ -2,6 +2,16 @@
   import { onMount } from "svelte";
   const rows = 3;
   const cols = 6;
+  let plans = $state([]);
+  let currentPlanName = $state(null);
+  let plan = $derived.by(() => {
+    if (!plans || plans.length === 0) return null;
+    if (currentPlanName) {
+      console.log("Finding plan with name:", currentPlanName);
+      return plans.find((p) => p.name === currentPlanName) ?? plans[0];
+    }
+    return plans[0];
+  });
 
   let initialPlans = [
     {
@@ -16,59 +26,54 @@
     },
   ];
 
-  let plans = $state(initialPlans);
-  let plan = $state(null);
-
-  function normalizePlans(list) {
-    if (!Array.isArray(list)) return initialPlans;
-    for (const p of list) {
-      if (!("seated" in p) && "seats" in p) {
-        p.seated = Array.isArray(p.seats)
-          ? p.seats
-          : Array(rows * cols).fill(null);
-        delete p.seats;
-      }
-      if (!Array.isArray(p.seated)) {
-        p.seated = Array(rows * cols).fill(null);
-      }
-      if (p.seated.length !== rows * cols) {
-        const next = Array(rows * cols).fill(null);
-        for (let i = 0; i < Math.min(p.seated.length, next.length); i++)
-          next[i] = p.seated[i];
-        p.seated = next;
-      }
-      if (!Array.isArray(p.unseated)) p.unseated = [];
-    }
-    return list;
-  }
-
   // retrieve stored plans and current plan once on mount (avoid reactive loops)
   onMount(() => {
     const storedPlans = localStorage.getItem("plans");
     if (storedPlans) {
-      try {
-        plans = normalizePlans(JSON.parse(storedPlans));
-      } catch {}
+      console.log("Stored plans found:", storedPlans);
+      const parsedPlans = JSON.parse(storedPlans);
+      plans = parsedPlans;
+      initialPlans = parsedPlans;
+    } else {
+      plans = initialPlans;
+      console.log("No stored plans found, using initial plans:", initialPlans);
     }
 
-    const currentPlanNameRaw = localStorage.getItem("currentPlanName");
-    if (currentPlanNameRaw) {
-      let name;
+    const storedPlanNameRaw = localStorage.getItem("currentPlanName");
+    if (storedPlanNameRaw) {
       try {
-        name = JSON.parse(currentPlanNameRaw);
-      } catch {
-        name = currentPlanNameRaw;
+        currentPlanName = JSON.parse(storedPlanNameRaw);
+      } catch (e) {
+        currentPlanName = storedPlanNameRaw;
       }
-      const match = plans.find((p) => p.name === name);
-      if (match) plan = match;
+    } else {
+      currentPlanName = plans.length > 0 ? plans[0].name : null;
     }
   });
 
   $effect(() => {
-    if (plan) {
-      localStorage.setItem("currentPlanName", JSON.stringify(plan.name));
+    if (plan && plan.name) {
+      localStorage.setItem("currentPlanName", plan.name);
     }
   });
+
+  // Debug effect to track plan changes
+  $effect(() => {
+    console.log(
+      "Plan changed:",
+      plan?.name,
+      "Current plan name:",
+      currentPlanName
+    );
+  });
+
+  function createEmptyPlan() {
+    return {
+      name: "New Plan",
+      seated: Array(rows * cols).fill(null),
+      unseated: [],
+    };
+  }
 
   $effect(() => {
     if (plans.length === 0) {
@@ -77,12 +82,6 @@
         seated: Array(rows * cols).fill(null),
         unseated: [],
       });
-    }
-  });
-
-  $effect(() => {
-    if (plans.length > 0 && !plan) {
-      plan = plans[0];
     }
   });
 
@@ -125,7 +124,23 @@
     ];
     plan.seated = Array(rows * cols).fill(null);
   }
-  function handleFill() {}
+  function handleFill() {
+    for (let i = 0; i < plan.seated.length; i++) {
+      if (plan.seated[i] === null && plan.unseated.length > 0) {
+        plan.seated[i] = plan.unseated.shift(); // Fill empty seats with unseated students
+      }
+    }
+  }
+
+  function handleReset() {
+    localStorage.removeItem("plans");
+    localStorage.removeItem("currentPlanName");
+    window.location.reload();
+  }
+
+  function handleRandomize() {
+    plan.seated = [...plan.seated].sort(() => Math.random() - 0.5);
+  }
 </script>
 
 <header>
@@ -135,12 +150,15 @@
 <main>
   <div class="container">
     <menu>
-      <select bind:value={plan} class="select">
+      <select bind:value={currentPlanName} class="select">
         {#each plans as p}
-          <option value={p}>{p.name}</option>
+          <option value={p.name}>{p.name}</option>
         {/each}
       </select>
       <button onclick={handleClear}>Clear</button>
+      <button onclick={handleFill}>Fill</button>
+      <button onclick={handleRandomize}>Randomize</button>
+      <button onclick={handleReset}>Reset</button>
     </menu>
     {#if plan}
       <div
@@ -198,6 +216,10 @@
 
   .container {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 800px;
+    margin: 0 auto;
     justify-content: center;
     margin-bottom: 20px;
   }
@@ -205,7 +227,6 @@
   .grid {
     display: grid;
     width: fit-content;
-    border-radius: 8px;
     overflow: hidden;
   }
 
