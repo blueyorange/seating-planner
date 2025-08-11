@@ -138,7 +138,7 @@
     window.location.reload();
   }
 
-  function handleRandomize() {
+  function handleShuffle() {
     plan.seated = [...plan.seated].sort(() => Math.random() - 0.5);
   }
 </script>
@@ -157,7 +157,7 @@
       </select>
       <button onclick={handleClear}>Clear</button>
       <button onclick={handleFill}>Fill</button>
-      <button onclick={handleRandomize}>Randomize</button>
+      <button onclick={handleShuffle}>Shuffle</button>
       <button onclick={handleReset}>Reset</button>
     </menu>
     {#if plan}
