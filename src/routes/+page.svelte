@@ -127,7 +127,7 @@
     event.dataTransfer.setData("text/plain", student);
   }
 
-  function handleClear() {
+  function handleEmpty() {
     plan.unseated = [
       ...plan.unseated,
       ...plan.seated.filter((s) => s !== null),
@@ -150,6 +150,29 @@
 
   function handleShuffle() {
     plan.seated = plan.seated.sort(() => Math.random() - 0.5);
+  }
+
+  function handleDeletePlan() {
+    if (!plan) return;
+    const planNameToDelete = plan.name;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete plan "${planNameToDelete}"? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    // Remove the plan
+    plans = plans.filter((p) => p.name !== planNameToDelete);
+
+    // Reset editing state if any
+    editingIndex = -1;
+    editingValue = "";
+
+    // Choose a new current plan if any remain
+    if (plans.length > 0) {
+      currentPlanName = plans[0].name;
+    } else {
+      currentPlanName = null;
+    }
   }
 
   function handleDoubleClick(index) {
@@ -211,10 +234,11 @@
           <option value={p.name}>{p.name}</option>
         {/each}
       </select>
-      <button onclick={handleClear}>Clear</button>
+      <button onclick={handleEmpty}>Empty</button>
       <button onclick={handleFill}>Fill</button>
       <button onclick={handleShuffle}>Shuffle</button>
       <button onclick={handleReset}>Reset</button>
+      <button class="danger" onclick={handleDeletePlan}>Delete Plan</button>
     </menu>
     {#if plan}
       <div
@@ -402,6 +426,18 @@
   button:active {
     transform: translateY(0);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Danger button style for destructive actions */
+  .danger {
+    background-color: #b91c1c;
+    color: white;
+  }
+
+  .danger:hover {
+    background-color: #991b1b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(185, 28, 28, 0.3);
   }
 
   .edit-input {
