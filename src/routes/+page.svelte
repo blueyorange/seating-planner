@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import Toggle from "../components/Toggle.svelte";
   const rows = 3; // defaults for new plans
   const cols = 6;
   let plans = $state([]);
@@ -19,6 +20,14 @@
   let newPlanName = $state("");
   let createInputEl = $state(null);
   let createDialogEl = $state(null);
+  let viewMode = $state("teacher"); // 'teacher' | 'student'
+
+  let displayedSeats = $derived.by(() => {
+    if (!plan) return [];
+    return viewMode === "teacher"
+      ? plan.seated
+      : [...plan.seated].slice().reverse();
+  });
 
   let initialPlans = [
     {
@@ -320,6 +329,17 @@
     handleCreateConfirm();
   }
 
+  function toggleView() {
+    viewMode = viewMode === "teacher" ? "student" : "teacher";
+  }
+
+  function modelIndexFromDisplay(displayIndex) {
+    if (!plan) return displayIndex;
+    if (viewMode === "teacher") return displayIndex;
+    const total = plan.rows * plan.cols;
+    return total - 1 - displayIndex;
+  }
+
   function handleDoubleClick(index) {
     editingIndex = index;
     editingValue = plan.seated[index] || "";
@@ -385,6 +405,7 @@
 <main>
   <div class="container">
     <menu>
+      <Toggle checked={viewMode === "student"} onToggle={toggleView} />
       {#if plan}
         <div class="grid-size" title="Grid size">
           <input
@@ -419,7 +440,8 @@
         style="grid-template-columns: repeat({plan.cols}, 1fr); grid-template-rows: repeat({plan.rows}, 60px); gap: 8px;"
         role="listbox"
       >
-        {#each plan.seated as seat, i}
+        {#each displayedSeats as seat, displayIndex}
+          {@const i = modelIndexFromDisplay(displayIndex)}
           <div
             draggable={editingIndex !== i}
             ondragstart={(e) => handleDragStart(e, seat)}
@@ -557,7 +579,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
     justify-content: center;
     margin-bottom: 20px;
