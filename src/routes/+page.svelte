@@ -12,6 +12,9 @@
     }
     return plans[0];
   });
+  let editingIndex = $state(-1);
+  let editingValue = $state("");
+  let editInputEl = $state(null);
 
   let initialPlans = [
     {
@@ -54,6 +57,13 @@
   $effect(() => {
     if (plan && plan.name) {
       localStorage.setItem("currentPlanName", plan.name);
+    }
+  });
+
+  $effect(() => {
+    if (editingIndex !== -1 && editInputEl) {
+      editInputEl.focus();
+      editInputEl.select?.();
     }
   });
 
@@ -139,7 +149,53 @@
   }
 
   function handleShuffle() {
-    plan.seated = [...plan.seated].sort(() => Math.random() - 0.5);
+    plan.seated = plan.seated.sort(() => Math.random() - 0.5);
+  }
+
+  function handleDoubleClick(index) {
+    editingIndex = index;
+    editingValue = plan.seated[index] || "";
+  }
+
+  function handleEditSave() {
+    if (editingIndex >= 0) {
+      const trimmedValue = editingValue.trim();
+      if (trimmedValue) {
+        // If there was already a student in this seat, remove them from unseated
+        const oldStudent = plan.seated[editingIndex];
+        if (oldStudent) {
+          plan.unseated = plan.unseated.filter((s) => s !== oldStudent);
+        }
+        // Add the new student to the seat
+        plan.seated[editingIndex] = trimmedValue;
+        // Remove the new student from unseated if they were there
+        plan.unseated = plan.unseated.filter((s) => s !== trimmedValue);
+      } else {
+        // If empty value, move existing student to unseated
+        const oldStudent = plan.seated[editingIndex];
+        if (oldStudent && !plan.unseated.includes(oldStudent)) {
+          plan.unseated.push(oldStudent);
+        }
+        plan.seated[editingIndex] = null;
+      }
+    }
+    editingIndex = -1;
+    editingValue = "";
+    editInputEl = null;
+  }
+
+  function handleEditCancel() {
+    editingIndex = -1;
+    editingValue = "";
+    editInputEl = null;
+  }
+
+  function handleEditKeydown(event) {
+    if (event.key === "Enter") {
+      handleEditSave();
+    } else if (event.key === "Escape") {
+      handleEditCancel();
+    }
   }
 </script>
 
@@ -168,16 +224,28 @@
       >
         {#each plan.seated as seat, i}
           <div
-            draggable="true"
+            draggable={editingIndex !== i}
             ondragstart={(e) => handleDragStart(e, seat)}
             class="grid-item {seat ? 'occupied' : ''}"
             ondrop={(e) => handleDrop(e, i)}
             ondragover={(e) => e.preventDefault()}
+            ondblclick={() => handleDoubleClick(i)}
             role="option"
             aria-selected={seat ? "true" : "false"}
             tabindex="0"
           >
-            {seat}
+            {#if editingIndex === i}
+              <input
+                type="text"
+                bind:value={editingValue}
+                onblur={handleEditSave}
+                onkeydown={handleEditKeydown}
+                class="edit-input"
+                bind:this={editInputEl}
+              />
+            {:else}
+              {seat}
+            {/if}
           </div>
         {/each}
       </div>
@@ -334,6 +402,25 @@
   button:active {
     transform: translateY(0);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .edit-input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    font-size: inherit;
+    font-family: inherit;
+    text-align: center;
+    outline: none;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+  }
+
+  .edit-input:focus {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: 4px;
   }
 
   .grid {
