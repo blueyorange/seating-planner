@@ -15,6 +15,10 @@
   let editingIndex = $state(-1);
   let editingValue = $state("");
   let editInputEl = $state(null);
+  let creatingPlan = $state(false);
+  let newPlanName = $state("");
+  let createInputEl = $state(null);
+  let createDialogEl = $state(null);
 
   let initialPlans = [
     {
@@ -64,6 +68,30 @@
     if (editingIndex !== -1 && editInputEl) {
       editInputEl.focus();
       editInputEl.select?.();
+    }
+  });
+
+  $effect(() => {
+    if (creatingPlan && createInputEl) {
+      createInputEl.focus();
+      createInputEl.select?.();
+    }
+  });
+
+  $effect(() => {
+    if (!createDialogEl) return;
+    if (creatingPlan) {
+      if (!createDialogEl.open) {
+        try {
+          createDialogEl.showModal();
+        } catch (e) {
+          /* ignore if already open */
+        }
+      }
+    } else {
+      if (createDialogEl.open) {
+        createDialogEl.close();
+      }
     }
   });
 
@@ -175,6 +203,62 @@
     }
   }
 
+  function openCreateDialog() {
+    newPlanName = "";
+    creatingPlan = true;
+  }
+
+  function getUniquePlanName(baseName) {
+    const existingNames = new Set(plans.map((p) => p.name));
+    if (!existingNames.has(baseName)) return baseName;
+    let counter = 2;
+    while (existingNames.has(`${baseName} (${counter})`)) {
+      counter += 1;
+    }
+    return `${baseName} (${counter})`;
+  }
+
+  function handleCreateConfirm() {
+    const trimmed = newPlanName.trim();
+    if (!trimmed) {
+      // Keep dialog open; focus input again
+      if (createInputEl) createInputEl.focus();
+      return;
+    }
+    const uniqueName = getUniquePlanName(trimmed);
+    const newPlan = {
+      name: uniqueName,
+      seated: Array(rows * cols).fill(null),
+      unseated: [],
+    };
+    plans.push(newPlan);
+    currentPlanName = uniqueName;
+    creatingPlan = false;
+    newPlanName = "";
+    createInputEl = null;
+    createDialogEl?.close();
+  }
+
+  function handleCreateCancel() {
+    creatingPlan = false;
+    newPlanName = "";
+    createInputEl = null;
+    createDialogEl?.close();
+  }
+
+  function handleCreateKeydown(event) {
+    if (event.key === "Enter") {
+      handleCreateConfirm();
+    } else if (event.key === "Escape") {
+      handleCreateCancel();
+    }
+  }
+
+  function handleCreateSubmit(event) {
+    event.preventDefault();
+    handleCreateConfirm();
+  }
+
   function handleDoubleClick(index) {
     editingIndex = index;
     editingValue = plan.seated[index] || "";
@@ -222,23 +306,28 @@
   }
 </script>
 
-<header>
-  <h1>Seating Planner</h1>
+<header class="app-header">
+  <div class="header-inner">
+    <h1 class="header-title">Seating Planner</h1>
+    <div class="header-actions">
+      <select bind:value={currentPlanName} class="select small">
+        {#each plans as p}
+          <option value={p.name}>{p.name}</option>
+        {/each}
+      </select>
+      <button class="primary" onclick={openCreateDialog}>New</button>
+      <button class="danger" onclick={handleDeletePlan}>Delete</button>
+    </div>
+  </div>
 </header>
 
 <main>
   <div class="container">
     <menu>
-      <select bind:value={currentPlanName} class="select">
-        {#each plans as p}
-          <option value={p.name}>{p.name}</option>
-        {/each}
-      </select>
-      <button onclick={handleEmpty}>Empty</button>
-      <button onclick={handleFill}>Fill</button>
-      <button onclick={handleShuffle}>Shuffle</button>
-      <button onclick={handleReset}>Reset</button>
-      <button class="danger" onclick={handleDeletePlan}>Delete Plan</button>
+      <button class="empty" onclick={handleEmpty}>Empty</button>
+      <button class="fill" onclick={handleFill}>Fill</button>
+      <button class="shuffle" onclick={handleShuffle}>Shuffle</button>
+      <button class="reset" onclick={handleReset}>Reset</button>
     </menu>
     {#if plan}
       <div
@@ -292,18 +381,62 @@
       {/each}
     </ul>
   {/if}
+
+  <dialog class="modal" bind:this={createDialogEl} onclose={handleCreateCancel}>
+    <form method="dialog" onsubmit={handleCreateSubmit} class="modal-form">
+      <h2>Create New Plan</h2>
+      <label for="plan-name">Plan name</label>
+      <input
+        id="plan-name"
+        type="text"
+        placeholder="e.g. S3 or Period 2"
+        bind:value={newPlanName}
+        onkeydown={handleCreateKeydown}
+        bind:this={createInputEl}
+      />
+      <div class="modal-actions">
+        <button value="cancel" onclick={handleCreateCancel}>Cancel</button>
+        <button class="confirm" value="default">Create</button>
+      </div>
+    </form>
+  </dialog>
 </main>
 
 <style>
   :global(body) {
     font-family: Arial, sans-serif;
     margin: 0;
-    padding: 20px;
     background-color: #f4f4f4;
   }
-  header {
-    text-align: center;
-    margin-bottom: 20px;
+  header.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin: 0;
+  }
+
+  .header-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .header-title {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
   .container {
@@ -345,6 +478,14 @@
     background-position: right 12px center;
     background-size: 16px;
     padding-right: 40px;
+  }
+
+  .select.small {
+    padding: 8px 14px;
+    min-width: 100px;
+    background-position: right 10px center;
+    background-size: 14px;
+    padding-right: 32px;
   }
 
   .select:hover {
@@ -438,6 +579,79 @@
     background-color: #991b1b;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(185, 28, 28, 0.3);
+  }
+
+  /* Primary button style for actions like create */
+  .primary {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .primary:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  }
+
+  .confirm {
+    background-color: #10b981;
+    color: white;
+  }
+
+  .confirm:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+  }
+
+  /* Modal styles using native dialog */
+  dialog.modal::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  dialog.modal {
+    border: none;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    width: calc(100% - 32px);
+    max-width: 420px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .modal h2 {
+    margin: 0 0 12px;
+  }
+
+  .modal label {
+    display: block;
+    font-size: 14px;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+
+  .modal input[type="text"] {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .modal input[type="text"]:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 16px;
   }
 
   .edit-input {
