@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  const rows = 3;
+  const rows = 3; // defaults for new plans
   const cols = 6;
   let plans = $state([]);
   let currentPlanName = $state(null);
@@ -23,11 +23,15 @@
   let initialPlans = [
     {
       name: "S1",
+      rows,
+      cols,
       seated: Array(rows * cols).fill(null),
       unseated: ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace"],
     },
     {
       name: "S2",
+      rows,
+      cols,
       seated: Array(rows * cols).fill(null),
       unseated: ["Grace", "Heidi", "Ivan", "Judy", "Karl", "Leo"],
     },
@@ -38,7 +42,30 @@
     const storedPlans = localStorage.getItem("plans");
     if (storedPlans) {
       console.log("Stored plans found:", storedPlans);
-      const parsedPlans = JSON.parse(storedPlans);
+      const parsedPlans = JSON.parse(storedPlans).map((p) => ({
+        rows: p.rows ?? rows,
+        cols: p.cols ?? cols,
+        ...p,
+        // Ensure seated length matches rows*cols
+        seated: (() => {
+          const target = (p.rows ?? rows) * (p.cols ?? cols);
+          const current = Array.isArray(p.seated) ? p.seated : [];
+          if (current.length === target) return current;
+          if (current.length < target) {
+            return [...current, ...Array(target - current.length).fill(null)];
+          }
+          const removed = current.slice(target).filter((s) => s !== null);
+          const base = current.slice(0, target);
+          return base; // removed will be merged into unseated below
+        })(),
+        unseated: (() => {
+          const target = (p.rows ?? rows) * (p.cols ?? cols);
+          const current = Array.isArray(p.seated) ? p.seated : [];
+          const removed = current.slice(target).filter((s) => s !== null);
+          const un = Array.isArray(p.unseated) ? p.unseated : [];
+          return [...un, ...removed];
+        })(),
+      }));
       plans = parsedPlans;
       initialPlans = parsedPlans;
     } else {
@@ -117,6 +144,8 @@
     if (plans.length === 0) {
       plans.push({
         name: "Default Plan",
+        rows,
+        cols,
         seated: Array(rows * cols).fill(null),
         unseated: [],
       });
@@ -160,7 +189,7 @@
       ...plan.unseated,
       ...plan.seated.filter((s) => s !== null),
     ];
-    plan.seated = Array(rows * cols).fill(null);
+    plan.seated = Array(plan.rows * plan.cols).fill(null);
   }
   function handleFill() {
     for (let i = 0; i < plan.seated.length; i++) {
@@ -178,6 +207,36 @@
 
   function handleShuffle() {
     plan.seated = plan.seated.sort(() => Math.random() - 0.5);
+  }
+
+  function clamp(num, min, max) {
+    return Math.max(min, Math.min(max, num));
+  }
+
+  function resizeGrid(newRows, newCols) {
+    const r = clamp(parseInt(newRows ?? plan.rows, 10) || plan.rows, 1, 20);
+    const c = clamp(parseInt(newCols ?? plan.cols, 10) || plan.cols, 1, 20);
+    const oldSize = plan.seated.length;
+    const newSize = r * c;
+    if (newSize > oldSize) {
+      plan.seated = [...plan.seated, ...Array(newSize - oldSize).fill(null)];
+    } else if (newSize < oldSize) {
+      const removed = plan.seated.slice(newSize).filter((s) => s !== null);
+      if (removed.length) {
+        plan.unseated = [...plan.unseated, ...removed];
+      }
+      plan.seated = plan.seated.slice(0, newSize);
+    }
+    plan.rows = r;
+    plan.cols = c;
+  }
+
+  function handleRowsChange(event) {
+    resizeGrid(event.currentTarget?.value, plan.cols);
+  }
+
+  function handleColsChange(event) {
+    resizeGrid(plan.rows, event.currentTarget?.value);
   }
 
   function handleDeletePlan() {
@@ -228,6 +287,8 @@
     const uniqueName = getUniquePlanName(trimmed);
     const newPlan = {
       name: uniqueName,
+      rows,
+      cols,
       seated: Array(rows * cols).fill(null),
       unseated: [],
     };
@@ -324,6 +385,29 @@
 <main>
   <div class="container">
     <menu>
+      {#if plan}
+        <div class="grid-size" title="Grid size">
+          <input
+            class="num"
+            aria-label="Rows"
+            type="number"
+            min="1"
+            max="20"
+            value={plan.rows}
+            oninput={handleRowsChange}
+          />
+          <span class="times">×</span>
+          <input
+            class="num"
+            aria-label="Columns"
+            type="number"
+            min="1"
+            max="20"
+            value={plan.cols}
+            oninput={handleColsChange}
+          />
+        </div>
+      {/if}
       <button class="empty" onclick={handleEmpty}>Empty</button>
       <button class="fill" onclick={handleFill}>Fill</button>
       <button class="shuffle" onclick={handleShuffle}>Shuffle</button>
@@ -332,7 +416,7 @@
     {#if plan}
       <div
         class="grid"
-        style="grid-template-columns: repeat({cols}, 1fr); grid-template-rows: repeat({rows}, 60px); gap: 8px;"
+        style="grid-template-columns: repeat({plan.cols}, 1fr); grid-template-rows: repeat({plan.rows}, 60px); gap: 8px;"
         role="listbox"
       >
         {#each plan.seated as seat, i}
@@ -437,6 +521,36 @@
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+
+  .grid-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 6px 8px;
+  }
+
+  .grid-size .num {
+    width: 64px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 2px solid #e5e7eb;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .grid-size .num:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .grid-size .times {
+    color: #6b7280;
+    font-weight: 600;
   }
 
   .container {
