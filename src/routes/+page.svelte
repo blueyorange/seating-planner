@@ -391,12 +391,12 @@
   <div class="header-inner">
     <h1 class="header-title">Seating Planner</h1>
     <div class="header-actions">
-      <select bind:value={currentPlanName} class="select small">
+      <select bind:value={currentPlanName} class="select primary">
         {#each plans as p}
           <option value={p.name}>{p.name}</option>
         {/each}
       </select>
-      <button class="primary" onclick={openCreateDialog}>New</button>
+      <button class="confirm" onclick={openCreateDialog}>New</button>
       <button class="danger" onclick={handleDeletePlan}>Delete</button>
     </div>
   </div>
@@ -429,9 +429,9 @@
           />
         </div>
       {/if}
-      <button class="empty" onclick={handleEmpty}>Empty</button>
-      <button class="fill" onclick={handleFill}>Fill</button>
-      <button class="shuffle" onclick={handleShuffle}>Shuffle</button>
+      <button class="warning" onclick={handleEmpty}>Empty</button>
+      <button class="warning" onclick={handleFill}>Fill</button>
+      <button class="warning" onclick={handleShuffle}>Shuffle</button>
       <button class="reset" onclick={handleReset}>Reset</button>
     </menu>
     {#if plan}
@@ -535,7 +535,7 @@
   }
 
   .header-title {
-    font-size: 20px;
+    font-size: 2rem;
     margin: 0;
   }
 
@@ -598,8 +598,8 @@
     padding: 10px 20px;
     border: none;
     border-radius: 8px;
-    background-color: #3b82f6;
-    color: white;
+    /* background-color: #3b82f6;
+    color: white; */
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -616,16 +616,8 @@
     padding-right: 40px;
   }
 
-  .select.small {
-    padding: 8px 14px;
-    min-width: 100px;
-    background-position: right 10px center;
-    background-size: 14px;
-    padding-right: 32px;
-  }
-
   .select:hover {
-    background-color: #2563eb;
+    filter: brightness(0.8);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
   }
@@ -656,48 +648,10 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
-  button:nth-child(2) {
-    background-color: #ef4444;
-    color: white;
-  }
-
-  button:nth-child(2):hover {
-    background-color: #dc2626;
+  button:hover {
+    filter: brightness(0.8);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
-  }
-
-  button:nth-child(3) {
-    background-color: #10b981;
-    color: white;
-  }
-
-  button:nth-child(3):hover {
-    background-color: #059669;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
-  }
-
-  button:nth-child(4) {
-    background-color: #f59e0b;
-    color: white;
-  }
-
-  button:nth-child(4):hover {
-    background-color: #d97706;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
-  }
-
-  button:nth-child(5) {
-    background-color: #6b7280;
-    color: white;
-  }
-
-  button:nth-child(5):hover {
-    background-color: #4b5563;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(107, 114, 128, 0.3);
   }
 
   button:active {
@@ -711,22 +665,10 @@
     color: white;
   }
 
-  .danger:hover {
-    background-color: #991b1b;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(185, 28, 28, 0.3);
-  }
-
   /* Primary button style for actions like create */
   .primary {
     background-color: #3b82f6;
     color: white;
-  }
-
-  .primary:hover {
-    background-color: #2563eb;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
   }
 
   .confirm {
@@ -734,10 +676,9 @@
     color: white;
   }
 
-  .confirm:hover {
-    background-color: #059669;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+  .warning {
+    background-color: #f7f72a;
+    color: black;
   }
 
   /* Modal styles using native dialog */
