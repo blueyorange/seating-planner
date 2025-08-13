@@ -8,7 +8,6 @@
   let plan = $derived.by(() => {
     if (!plans || plans.length === 0) return null;
     if (currentPlanName) {
-      console.log("Finding plan with name:", currentPlanName);
       return plans.find((p) => p.name === currentPlanName) ?? plans[0];
     }
     return plans[0];
@@ -50,7 +49,6 @@
   onMount(() => {
     const storedPlans = localStorage.getItem("plans");
     if (storedPlans) {
-      console.log("Stored plans found:", storedPlans);
       const parsedPlans = JSON.parse(storedPlans).map((p) => ({
         rows: p.rows ?? rows,
         cols: p.cols ?? cols,
@@ -79,7 +77,6 @@
       initialPlans = parsedPlans;
     } else {
       plans = initialPlans;
-      console.log("No stored plans found, using initial plans:", initialPlans);
     }
 
     const storedPlanNameRaw = localStorage.getItem("currentPlanName");
@@ -129,16 +126,6 @@
         createDialogEl.close();
       }
     }
-  });
-
-  // Debug effect to track plan changes
-  $effect(() => {
-    console.log(
-      "Plan changed:",
-      plan?.name,
-      "Current plan name:",
-      currentPlanName
-    );
   });
 
   function createEmptyPlan() {
