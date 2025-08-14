@@ -20,6 +20,10 @@
   let createInputEl = $state(null);
   let createDialogEl = $state(null);
   let viewMode = $state("teacher"); // 'teacher' | 'student'
+  let darkMode = $state(false);
+  let importingNames = $state(false);
+  let namesText = $state("");
+  let importDialogEl = $state(null);
 
   let displayedSeats = $derived.by(() => {
     if (!plan) return [];
@@ -126,6 +130,27 @@
         createDialogEl.close();
       }
     }
+  });
+
+  $effect(() => {
+    if (!importDialogEl) return;
+    if (importingNames) {
+      if (!importDialogEl.open) {
+        try {
+          importDialogEl.showModal();
+        } catch (e) {
+          /* ignore if already open */
+        }
+      }
+    } else {
+      if (importDialogEl.open) {
+        importDialogEl.close();
+      }
+    }
+  });
+
+  $effect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
   });
 
   function createEmptyPlan() {
@@ -320,6 +345,55 @@
     viewMode = viewMode === "teacher" ? "student" : "teacher";
   }
 
+  function toggleDarkMode() {
+    darkMode = !darkMode;
+  }
+
+  function openImportDialog() {
+    namesText = "";
+    importingNames = true;
+  }
+
+  function handleImportConfirm() {
+    const trimmed = namesText.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    // Parse names from text (split by newlines, commas, or semicolons)
+    const names = trimmed
+      .split(/[\n,;]/)
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0);
+
+    if (names.length > 0) {
+      plan.unseated = [...plan.unseated, ...names];
+    }
+
+    importingNames = false;
+    namesText = "";
+    importDialogEl?.close();
+  }
+
+  function handleImportCancel() {
+    importingNames = false;
+    namesText = "";
+    importDialogEl?.close();
+  }
+
+  function handleImportKeydown(event) {
+    if (event.key === "Enter" && event.ctrlKey) {
+      handleImportConfirm();
+    } else if (event.key === "Escape") {
+      handleImportCancel();
+    }
+  }
+
+  function handleImportSubmit(event) {
+    event.preventDefault();
+    handleImportConfirm();
+  }
+
   function modelIndexFromDisplay(displayIndex) {
     if (!plan) return displayIndex;
     if (viewMode === "teacher") return displayIndex;
@@ -383,6 +457,13 @@
           <option value={p.name}>{p.name}</option>
         {/each}
       </select>
+      <button
+        class="theme-toggle"
+        onclick={toggleDarkMode}
+        title="Toggle dark mode"
+      >
+        {darkMode ? "☀️" : "🌙"}
+      </button>
       <button class="confirm" onclick={openCreateDialog}>New</button>
       <button class="danger" onclick={handleDeletePlan}>Delete</button>
     </div>
@@ -392,8 +473,8 @@
 <main>
   <div class="container">
     <menu>
-      <Toggle checked={viewMode === "student"} onToggle={toggleView} />
       {#if plan}
+        <Toggle checked={viewMode === "student"} onToggle={toggleView} />
         <div class="grid-size" title="Grid size">
           <input
             class="num"
@@ -419,6 +500,7 @@
       <button class="warning" onclick={handleEmpty}>Empty</button>
       <button class="warning" onclick={handleFill}>Fill</button>
       <button class="warning" onclick={handleShuffle}>Shuffle</button>
+      <button class="import" onclick={openImportDialog}>Import Names</button>
       <button class="reset" onclick={handleReset}>Reset</button>
     </menu>
     {#if plan}
@@ -493,22 +575,99 @@
       </div>
     </form>
   </dialog>
+
+  <dialog class="modal" bind:this={importDialogEl} onclose={handleImportCancel}>
+    <form method="dialog" onsubmit={handleImportSubmit} class="modal-form">
+      <h2>Import Names</h2>
+      <label for="names-text"
+        >Paste names (one per line, comma, or semicolon separated)</label
+      >
+      <textarea
+        id="names-text"
+        placeholder="Alice&#10;Bob&#10;Charlie&#10;David, Eve, Frank&#10;Grace; Heidi; Ivan"
+        bind:value={namesText}
+        onkeydown={handleImportKeydown}
+        rows="8"
+      ></textarea>
+      <div class="modal-actions">
+        <button value="cancel" onclick={handleImportCancel}>Cancel</button>
+        <button class="confirm" value="default">Import</button>
+      </div>
+    </form>
+  </dialog>
 </main>
 
 <style>
+  :global(:root) {
+    /* Light mode variables */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f4f4f4;
+    --bg-tertiary: #f3f4f6;
+    --text-primary: #374151;
+    --text-secondary: #6b7280;
+    --border-primary: #e5e7eb;
+    --border-secondary: #d1d5db;
+    --shadow-primary: rgba(0, 0, 0, 0.1);
+    --shadow-secondary: rgba(0, 0, 0, 0.05);
+    --shadow-tertiary: rgba(0, 0, 0, 0.15);
+    --accent-primary: #3b82f6;
+    --accent-secondary: #2563eb;
+    --accent-tertiary: #1d4ed8;
+    --success-primary: #10b981;
+    --success-secondary: #059669;
+    --warning-primary: #f59e0b;
+    --warning-secondary: #d97706;
+    --danger-primary: #ef4444;
+    --danger-secondary: #dc2626;
+    --danger-tertiary: #b91c1c;
+    --danger-quaternary: #991b1b;
+  }
+
+  :global(.dark) {
+    /* Dark mode variables */
+    --bg-primary: #1f2937;
+    --bg-secondary: #111827;
+    --bg-tertiary: #374151;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --border-primary: #4b5563;
+    --border-secondary: #6b7280;
+    --shadow-primary: rgba(0, 0, 0, 0.3);
+    --shadow-secondary: rgba(0, 0, 0, 0.2);
+    --shadow-tertiary: rgba(0, 0, 0, 0.4);
+    --accent-primary: #3b82f6;
+    --accent-secondary: #60a5fa;
+    --accent-tertiary: #93c5fd;
+    --success-primary: #10b981;
+    --success-secondary: #34d399;
+    --warning-primary: #f59e0b;
+    --warning-secondary: #fbbf24;
+    --danger-primary: #ef4444;
+    --danger-secondary: #f87171;
+    --danger-tertiary: #dc2626;
+    --danger-quaternary: #ef4444;
+  }
+
   :global(body) {
     font-family: Arial, sans-serif;
     margin: 0;
-    background-color: #f4f4f4;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
   }
   header.app-header {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-primary);
+    box-shadow: 0 2px 8px var(--shadow-secondary);
     margin: 0;
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease;
   }
 
   .header-inner {
@@ -524,6 +683,7 @@
   .header-title {
     font-size: 2rem;
     margin: 0;
+    color: var(--text-primary);
   }
 
   .header-actions {
@@ -558,8 +718,27 @@
   }
 
   .grid-size .times {
-    color: #6b7280;
+    color: var(--text-secondary);
     font-weight: 600;
+  }
+
+  .theme-toggle {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .theme-toggle:hover {
+    background-color: var(--bg-tertiary);
+  }
+
+  .theme-toggle:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 
   .container {
@@ -585,8 +764,8 @@
     padding: 10px 20px;
     border: none;
     border-radius: 8px;
-    /* background-color: #3b82f6;
-    color: white; */
+    background-color: var(--accent-primary);
+    color: white;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -594,7 +773,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     min-width: 120px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px var(--shadow-primary);
     appearance: none;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
     background-repeat: no-repeat;
@@ -670,44 +849,51 @@
 
   /* Modal styles using native dialog */
   dialog.modal::backdrop {
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--shadow-tertiary);
   }
 
   dialog.modal {
     border: none;
-    background: #ffffff;
+    background: var(--bg-primary);
     border-radius: 12px;
     padding: 20px;
     width: calc(100% - 32px);
     max-width: 420px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 25px var(--shadow-tertiary);
+    transition: background-color 0.3s ease;
   }
 
   .modal h2 {
     margin: 0 0 12px;
+    color: var(--text-primary);
   }
 
   .modal label {
     display: block;
     font-size: 14px;
-    color: #374151;
+    color: var(--text-primary);
     margin-bottom: 6px;
   }
 
-  .modal input[type="text"] {
+  .modal input[type="text"],
+  .modal textarea {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
     padding: 10px 12px;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--border-primary);
     border-radius: 8px;
     font-size: 14px;
     outline: none;
     transition: all 0.2s ease;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: inherit;
   }
 
-  .modal input[type="text"]:focus {
-    border-color: #3b82f6;
+  .modal input[type="text"]:focus,
+  .modal textarea:focus {
+    border-color: var(--accent-primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 
@@ -749,14 +935,21 @@
     justify-content: center;
     width: 100px;
     text-align: center;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-secondary);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     cursor: default;
     user-select: none;
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease,
+      color 0.3s ease;
   }
 
   .occupied {
     cursor: grab;
-    background-color: #d4f7d4;
+    background-color: var(--success-primary);
+    color: var(--text-primary);
   }
 
   .unseated {
@@ -766,11 +959,13 @@
     justify-content: center;
     min-width: 200px;
     min-height: 100px;
-    background-color: #eee;
+    background-color: var(--bg-tertiary);
     list-style-type: none;
-    padding: 0;
+    padding: 8px;
     margin: 0 auto;
     max-width: 200px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
   }
 
   .unseated-item {
@@ -778,9 +973,25 @@
     height: fit-content;
     padding: 8px;
     margin: 4px;
-    background-color: #fff;
-    border: 1px solid #ccc;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-secondary);
+    color: var(--text-primary);
     cursor: grab;
     user-select: none;
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  .import {
+    background-color: var(--accent-primary);
+    color: white;
+  }
+
+  .import:hover {
+    background-color: var(--accent-secondary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
   }
 </style>
