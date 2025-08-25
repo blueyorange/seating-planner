@@ -5,7 +5,7 @@ class Plan {
   rows = $state(3);
   cols = $state(6);
 
-  constructor(name, rows, cols, names) {
+  constructor(name, rows, cols) {
     this.name = name;
     this.rows = rows;
     this.cols = cols;
