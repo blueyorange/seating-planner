@@ -4,6 +4,15 @@
   let { plan } = $props();
   let openImportNamesDialog = $state(false);
 
+  // Auto-resize when inputs change
+  $effect(() => {
+    const newRows = Math.max(1, Number(rowsInput) || 1);
+    const newCols = Math.max(1, Number(colsInput) || 1);
+    if (newRows !== plan.rows || newCols !== plan.cols) {
+      plan.resize(newRows, newCols);
+    }
+  });
+
   function handleDrop(event, index) {
     event.preventDefault();
     const nameToDrop = event.dataTransfer.getData("text/plain");
@@ -25,6 +34,10 @@
   function handleShuffle() {
     plan.shuffle();
   }
+
+  let rowsInput = $state(3);
+  let colsInput = $state(6);
+
   function handleOpenImportDialog() {
     openImportNamesDialog = true;
   }
@@ -37,10 +50,22 @@
 <main>
   <div class="container">
     <div class="controls">
-      <button onclick={handleClear}>Clear</button>
-      <button onclick={handleFill}>Fill</button>
-      <button onclick={handleShuffle}>Shuffle</button>
-      <button onclick={handleOpenImportDialog}>Import Names</button>
+      <div class="resize">
+        <label>
+          Rows
+          <input type="number" min="1" bind:value={rowsInput} />
+        </label>
+        <label>
+          Cols
+          <input type="number" min="1" bind:value={colsInput} />
+        </label>
+      </div>
+      <button class="btn-secondary" onclick={handleClear}>Clear</button>
+      <button class="btn-secondary" onclick={handleFill}>Fill</button>
+      <button class="btn-secondary" onclick={handleShuffle}>Shuffle</button>
+      <button class="btn-primary" onclick={handleOpenImportDialog}
+        >Import Names</button
+      >
     </div>
     <div
       class="grid"
@@ -85,34 +110,40 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-xl);
   }
 
   .controls {
     display: flex;
-    gap: 10px;
+    gap: var(--spacing-md);
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-xl);
   }
 
-  .controls button {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
+  .resize {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
   }
 
-  .controls button:hover {
-    background-color: #0056b3;
+  .resize label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-gray-800);
+  }
+
+  .resize input[type="number"] {
+    width: 4rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--border-radius-md);
+    background: var(--color-white);
   }
 
   .grid {
     display: grid;
     width: fit-content;
-    border-radius: 8px;
     overflow: hidden;
   }
 
@@ -122,26 +153,29 @@
     justify-content: center;
     width: 100px;
     text-align: center;
-    border: 1px solid #ccc;
-    background-color: #eee;
+    border: 1px solid var(--color-gray-300);
+    background-color: var(--color-gray-200);
     cursor: default;
     user-select: none;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--transition-base);
+    font-size: var(--font-size-xl);
   }
 
   .grid-item.occupied {
-    background-color: #d4f7d4;
+    background-color: var(--color-success);
+    color: var(--color-gray-800);
     cursor: grab;
   }
 
   .unseated-container {
     text-align: center;
-    margin-top: 20px;
+    margin-top: var(--spacing-xl);
   }
 
   .unseated-container h3 {
-    margin-bottom: 10px;
-    color: #333;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-gray-800);
+    font-size: var(--font-size-lg);
   }
 
   .students {
@@ -151,21 +185,23 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 8px;
+    gap: var(--spacing-sm);
     max-width: 600px;
   }
 
   .students li {
-    padding: 8px 12px;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--color-gray-100);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--border-radius-md);
     cursor: grab;
     user-select: none;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--transition-base);
   }
 
   .students li:hover {
-    background-color: #e9ecef;
+    background-color: var(--color-gray-200);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
   }
 </style>

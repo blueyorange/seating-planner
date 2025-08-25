@@ -68,6 +68,37 @@ class Plan {
   shuffle() {
     this.#seated = this.#seated.sort(() => Math.random() - 0.5);
   }
+
+  resize(rows, cols) {
+    const oldSize = this.rows * this.cols;
+    const newSize = rows * cols;
+
+    // Save current seated students
+    const currentSeated = this.#seated.slice();
+
+    // Update dimensions
+    this.rows = rows;
+    this.cols = cols;
+
+    // Create new seated array
+    const newSeated = Array(newSize).fill(null);
+
+    // Preserve as many seats as possible
+    const seatsToPreserve = Math.min(oldSize, newSize);
+    for (let i = 0; i < seatsToPreserve; i++) {
+      newSeated[i] = currentSeated[i];
+    }
+
+    // Move overflow seats to unseated
+    const overflowSeats = currentSeated
+      .slice(newSize)
+      .filter((seat) => seat !== null);
+    if (overflowSeats.length > 0) {
+      this.#unseated = [...this.#unseated, ...overflowSeats];
+    }
+
+    this.#seated = newSeated;
+  }
 }
 
 export default Plan;

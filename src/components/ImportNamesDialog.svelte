@@ -55,37 +55,41 @@
   ></textarea>
 
   <div class="dialog-actions">
-    <button type="button" onclick={handleCancel}>Cancel</button>
-    <button type="button" onclick={handleSubmit} class="primary">Import</button>
+    <button type="button" class="btn-secondary" onclick={handleCancel}
+      >Cancel</button
+    >
+    <button type="button" class="btn-primary" onclick={handleSubmit}
+      >Import</button
+    >
   </div>
 </div>
 
 <style>
   .dialog-content {
-    padding: 24px;
+    padding: var(--spacing-2xl);
     min-width: 400px;
   }
 
   .dialog-content h2 {
-    margin: 0 0 16px 0;
-    color: #333;
-    font-size: 1.5rem;
+    margin: 0 0 var(--spacing-lg) 0;
+    color: var(--color-gray-800);
+    font-size: var(--font-size-2xl);
   }
 
   .dialog-content label {
     display: block;
-    margin-bottom: 8px;
-    color: #555;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-gray-600);
     font-weight: 500;
   }
 
   .dialog-content textarea {
     width: 100%;
-    padding: 12px;
-    border: 2px solid #ddd;
-    border-radius: 4px;
-    font-family: inherit;
-    font-size: 14px;
+    padding: var(--spacing-md);
+    border: 2px solid var(--color-gray-300);
+    border-radius: var(--border-radius-md);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
     resize: vertical;
     min-height: 120px;
     box-sizing: border-box;
@@ -93,41 +97,14 @@
 
   .dialog-content textarea:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--color-primary);
     box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
   }
 
   .dialog-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--spacing-md);
     justify-content: flex-end;
-    margin-top: 20px;
-  }
-
-  .dialog-actions button {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-
-  .dialog-actions button:not(.primary) {
-    background-color: #6c757d;
-    color: white;
-  }
-
-  .dialog-actions button:not(.primary):hover {
-    background-color: #5a6268;
-  }
-
-  .dialog-actions button.primary {
-    background-color: #007bff;
-    color: white;
-  }
-
-  .dialog-actions button.primary:hover {
-    background-color: #0056b3;
+    margin-top: var(--spacing-xl);
   }
 </style>
