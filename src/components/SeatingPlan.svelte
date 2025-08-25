@@ -1,5 +1,8 @@
 <script>
+  import Modal from "./Modal.svelte";
+  import ImportNamesDialog from "./ImportNamesDialog.svelte";
   let { plan } = $props();
+  let openImportNamesDialog = $state(false);
 
   function handleDrop(event, index) {
     event.preventDefault();
@@ -22,6 +25,13 @@
   function handleShuffle() {
     plan.shuffle();
   }
+  function handleOpenImportDialog() {
+    openImportNamesDialog = true;
+  }
+
+  function handleCloseImportDialog() {
+    openImportNamesDialog = false;
+  }
 </script>
 
 <main>
@@ -30,6 +40,7 @@
       <button onclick={handleClear}>Clear</button>
       <button onclick={handleFill}>Fill</button>
       <button onclick={handleShuffle}>Shuffle</button>
+      <button onclick={handleOpenImportDialog}>Import Names</button>
     </div>
     <div
       class="grid"
@@ -39,7 +50,7 @@
       {#each plan.seated as seat, i}
         <div
           draggable={seat !== null}
-          ondragstart={(e) => handleDragStart(e, seat)}
+          ondragstart={(e) => handleDragStart(e, seat, i)}
           class="grid-item {seat ? 'occupied' : ''}"
           ondrop={(e) => handleDrop(e, i)}
           ondragover={(e) => e.preventDefault()}
@@ -52,16 +63,21 @@
       {/each}
     </div>
   </div>
-  <div class="unseated-container">
-    <h3>Unseated Students</h3>
-    <ul class="students">
-      {#each plan.unseated as student}
-        <li draggable="true" ondragstart={(e) => handleDragStart(e, student)}>
-          {student}
-        </li>
-      {/each}
-    </ul>
-  </div>
+  {#if plan.unseated.length > 0}
+    <div class="unseated-container">
+      <h3>Unseated Students</h3>
+      <ul class="students">
+        {#each plan.unseated as student}
+          <li draggable="true" ondragstart={(e) => handleDragStart(e, student)}>
+            {student}
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
+  <Modal open={openImportNamesDialog}>
+    <ImportNamesDialog {plan} onClose={handleCloseImportDialog} />
+  </Modal>
 </main>
 
 <style>

@@ -37,6 +37,8 @@ class Plan {
     if (previousIndex === -1) {
       // name was from unseated so remove it from unseated
       this.#unseated = this.#unseated.filter((s) => s !== name);
+    } else {
+      this.#seated[previousIndex] = null;
     }
 
     if (this.#seated[index] !== null) {
