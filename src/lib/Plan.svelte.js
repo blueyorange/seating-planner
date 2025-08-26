@@ -99,6 +99,24 @@ class Plan {
 
     this.#seated = newSeated;
   }
+
+  toJSON() {
+    return JSON.stringify({
+      name: this.name,
+      rows: this.rows,
+      cols: this.cols,
+      seated: this.#seated,
+      unseated: this.#unseated,
+    });
+  }
+
+  static fromJSON(json) {
+    const { name, rows, cols, seated, unseated } = JSON.parse(json);
+    const plan = new Plan(name, rows, cols);
+    plan.#seated = seated;
+    plan.#unseated = unseated;
+    return plan;
+  }
 }
 
 export default Plan;
