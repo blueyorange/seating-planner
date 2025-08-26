@@ -1,17 +1,9 @@
 <script>
   import Modal from "./Modal.svelte";
   import ImportNamesDialog from "./ImportNamesDialog.svelte";
+  import GridResizer from "./GridResizer.svelte";
   let { plan } = $props();
   let openImportNamesDialog = $state(false);
-
-  // Auto-resize when inputs change
-  $effect(() => {
-    const newRows = Math.max(1, Number(rowsInput) || 1);
-    const newCols = Math.max(1, Number(colsInput) || 1);
-    if (newRows !== plan.rows || newCols !== plan.cols) {
-      plan.resize(newRows, newCols);
-    }
-  });
 
   function handleDrop(event, index) {
     event.preventDefault();
@@ -35,9 +27,6 @@
     plan.shuffle();
   }
 
-  let rowsInput = $state(3);
-  let colsInput = $state(6);
-
   function handleOpenImportDialog() {
     openImportNamesDialog = true;
   }
@@ -50,16 +39,7 @@
 <main>
   <div class="container">
     <div class="controls">
-      <div class="resize">
-        <label>
-          Rows
-          <input type="number" min="1" bind:value={rowsInput} />
-        </label>
-        <label>
-          Cols
-          <input type="number" min="1" bind:value={colsInput} />
-        </label>
-      </div>
+      <GridResizer {plan} />
       <button class="btn-secondary" onclick={handleClear}>Clear</button>
       <button class="btn-secondary" onclick={handleFill}>Fill</button>
       <button class="btn-secondary" onclick={handleShuffle}>Shuffle</button>
@@ -118,27 +98,6 @@
     gap: var(--spacing-md);
     justify-content: center;
     margin-bottom: var(--spacing-xl);
-  }
-
-  .resize {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-
-  .resize label {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    color: var(--color-gray-800);
-  }
-
-  .resize input[type="number"] {
-    width: 4rem;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border: 1px solid var(--color-gray-300);
-    border-radius: var(--border-radius-md);
-    background: var(--color-white);
   }
 
   .grid {
