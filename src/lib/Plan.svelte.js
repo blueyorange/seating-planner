@@ -109,14 +109,6 @@ class Plan {
       unseated: this.#unseated,
     });
   }
-
-  static fromJSON(json) {
-    const { name, rows, cols, seated, unseated } = JSON.parse(json);
-    const plan = new Plan(name, rows, cols);
-    plan.#seated = seated;
-    plan.#unseated = unseated;
-    return plan;
-  }
 }
 
 export default Plan;
